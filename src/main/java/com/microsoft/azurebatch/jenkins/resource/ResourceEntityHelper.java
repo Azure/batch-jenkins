@@ -73,7 +73,7 @@ public class ResourceEntityHelper {
      * Generate extract ResourceEntity command on VM
      * @param resource resource entity
      * @param unzipUsePythonFileName the script file name to unzip file using Python
-     * @return
+     * @return extract ResourceEntity command on VM
      */
     public static String generateExtractResourceEntityCommandOnVM(ResourceEntity resource, String unzipUsePythonFileName) {
         // @resource is in JobPrep task folder. The actual file is resource.getBlobName(), 

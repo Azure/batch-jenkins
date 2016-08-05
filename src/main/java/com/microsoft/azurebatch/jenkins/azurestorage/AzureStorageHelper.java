@@ -7,6 +7,7 @@
 package com.microsoft.azurebatch.jenkins.azurestorage;
 
 import com.microsoft.azurebatch.jenkins.logger.Logger;
+import com.microsoft.azurebatch.jenkins.utils.Utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -32,6 +33,8 @@ import com.microsoft.windowsazure.storage.blob.SharedAccessBlobPolicy;
 import hudson.FilePath;
 import hudson.model.BuildListener;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 
 /**
@@ -84,7 +87,7 @@ public class AzureStorageHelper {
      * @param accountInfo storage account info
      * @param containerName container name
      * @param createIfNotExist create blob if not exist
-     * @return
+     * @return blob container reference
      * @throws URISyntaxException
      * @throws StorageException
      */
@@ -107,7 +110,7 @@ public class AzureStorageHelper {
      * @param listener BuildListener
      * @param container storage container
      * @param expirationInMins SAS expiration in minutes
-     * @return
+     * @return container SAS
      * @throws StorageException
      * @throws InvalidKeyException
      */
@@ -161,9 +164,8 @@ public class AzureStorageHelper {
      * @throws URISyntaxException
      */
     public static void download(BuildListener listener, CloudBlobContainer container, String blobPrefix, String targetFolderName) throws StorageException, IOException, URISyntaxException {
-        File targetFolder = new File(targetFolderName);
-        if (!targetFolder.exists()) {
-            targetFolder.mkdirs();
+        if (!Utils.dirExists(targetFolderName)) {
+            Files.createDirectory(Paths.get(targetFolderName));
         }
         
         int count = 0;

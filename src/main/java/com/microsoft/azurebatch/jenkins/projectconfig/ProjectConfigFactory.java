@@ -11,9 +11,13 @@ import com.google.gson.Gson;
 import com.microsoft.azurebatch.jenkins.logger.Logger;
 import com.microsoft.azurebatch.jenkins.utils.Utils;
 import hudson.model.BuildListener;
-import java.io.FileReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.InvalidObjectException;
+import java.io.Reader;
+import java.nio.charset.Charset;
 
 /**
  * ProjectConfigFactory class
@@ -36,7 +40,10 @@ public class ProjectConfigFactory {
         }
         
         Gson gson = new Gson();
-        ProjectConfig config = gson.fromJson(new FileReader(fullFilePath), ProjectConfig.class);
+        ProjectConfig config = null;
+        try (Reader reader = new InputStreamReader(new FileInputStream(new File(fullFilePath)), Charset.defaultCharset())) {
+            config = gson.fromJson(reader, ProjectConfig.class);
+        }
         
         // TODO: validate against schema
         // Do some basic check for project config, in case customer may provide wrong config file.

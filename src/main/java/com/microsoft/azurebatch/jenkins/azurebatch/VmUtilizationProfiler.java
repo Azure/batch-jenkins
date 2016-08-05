@@ -67,7 +67,7 @@ public class VmUtilizationProfiler extends Thread {
         try
         {
             FileOutputStream fos = new FileOutputStream(new File(vmUtilizatonLogFilePath));
-            bw = new BufferedWriter(new OutputStreamWriter(fos));
+            bw = new BufferedWriter(new OutputStreamWriter(fos, java.nio.charset.Charset.defaultCharset()));
             
             bw.write("timestamp,billedVmCount,unbilledVmCount,startingVmCount,rebootingVmCount,preparingVmCount,runningVmCount,leavingVmCount,otherStateVmCount");
             bw.newLine();

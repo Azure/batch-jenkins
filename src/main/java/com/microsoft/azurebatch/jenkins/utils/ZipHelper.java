@@ -12,6 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -57,13 +59,15 @@ public class ZipHelper {
             return;
         }
         
-        File outputFolder = new File(outputFolderPath);
-        if (!outputFolder.exists()) {
-            outputFolder.mkdirs();
+        if (!Utils.dirExists(outputFolderPath)) {
+            Files.createDirectory(Paths.get(outputFolderPath));
         }
         
-        for (File file: srcFolder.listFiles()) {
-            unzipFile(file, outputFolderPath);
+        File[] files = srcFolder.listFiles();
+        if (files != null) {
+            for (File file: files) {
+                unzipFile(file, outputFolderPath);
+            }
         }
     }
     
@@ -71,11 +75,12 @@ public class ZipHelper {
         File folder = new File(srcFolder);
 
         // Check the empty folder
-        if (folder.list().length == 0) {
+        String[] files = folder.list();
+        if (files == null || files.length == 0) {
             addFileToZip(path, srcFolder, zip, true);
         } else {
             // List the files in the folder
-            for (String fileName : folder.list()) {
+            for (String fileName : files) {
                 if (path.equals("")) {
                     addFileToZip(folder.getName(), srcFolder + File.separator + fileName, zip, false);
                 } else {
@@ -97,10 +102,11 @@ public class ZipHelper {
             } else {
                 byte[] buf = new byte[1024];
                 int len;
-                FileInputStream in = new FileInputStream(srcFile);
-                zip.putNextEntry(new ZipEntry(path + "/" + folder.getName()));
-                while ((len = in.read(buf)) > 0) {
-                    zip.write(buf, 0, len);
+                try (FileInputStream in = new FileInputStream(srcFile)) {
+                    zip.putNextEntry(new ZipEntry(path + "/" + folder.getName()));
+                    while ((len = in.read(buf)) > 0) {
+                        zip.write(buf, 0, len);
+                    }
                 }
             }
         }
@@ -116,17 +122,23 @@ public class ZipHelper {
                 File entryFile = new File(outputFolderPath, entry.getName());
                 if (entry.isDirectory()) {
                     if (!entryFile.exists()) {
-                        entryFile.mkdirs();
+                        if (!entryFile.mkdirs()) {
+                            throw new IOException(String.format("Failed to create folder %s %s", outputFolderPath, entry.getName()));
+                        }
                     }
                 } else {
                     // Create parent folder if it's not exist
                     File folder = entryFile.getParentFile();
                     if (!folder.exists()) {
-                        folder.mkdirs();
+                        if (!folder.mkdirs()) {
+                            throw new IOException(String.format("Failed to create folder %s", folder.getAbsolutePath()));
+                        }
                     }
                     
                     // Create the target file
-                    entryFile.createNewFile();
+                    if (!entryFile.createNewFile()) {
+                        throw new IOException(String.format("Failed to create entry file %s", entryFile.getAbsolutePath()));
+                    }
 
                     // And rewrite data from stream
                     OutputStream os = null;

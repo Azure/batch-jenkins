@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.microsoft.azurebatch</groupId>
     <artifactId>azure-batch-parallel</artifactId>
-    <version>0.1</version>
+    <version>0.1-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <properties>
@@ -131,7 +131,7 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-batch</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-20160503.003742-2</version>
         </dependency>
         
         <dependency>

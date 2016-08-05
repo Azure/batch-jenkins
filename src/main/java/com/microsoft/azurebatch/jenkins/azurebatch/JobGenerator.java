@@ -26,15 +26,20 @@ import com.microsoft.azurebatch.jenkins.projectconfig.ProjectConfigHelper;
 import com.microsoft.azurebatch.jenkins.resource.LocalResourceEntity;
 import com.microsoft.azurebatch.jenkins.resource.ResourceEntity;
 import com.microsoft.azurebatch.jenkins.resource.ResourceEntityHelper;
+import com.microsoft.azurebatch.jenkins.utils.Utils;
 import com.microsoft.azurebatch.jenkins.utils.WorkspaceHelper;
 import com.microsoft.windowsazure.storage.StorageException;
 import com.microsoft.windowsazure.storage.blob.CloudBlobContainer;
 import hudson.model.BuildListener;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Serializable;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -71,7 +76,7 @@ class JobGenerator {
     JobGenerator(BuildListener listener, WorkspaceHelper workspaceHelper,
             ProjectConfigHelper projectConfigHelper, JobSplitterHelper jobSplitterHelper, List<ResourceEntity> sharedResourceEntityList,
             BatchClient client, String jobId, String poolId,
-            StorageAccountInfo storageAccountInfo, String containerSasKey) throws URISyntaxException, StorageException, InvalidKeyException {
+            StorageAccountInfo storageAccountInfo, String containerSasKey) throws URISyntaxException, StorageException, InvalidKeyException, IOException {
         this.listener = listener;
         this.workspaceHelper = workspaceHelper;
         this.projectConfigHelper = projectConfigHelper;
@@ -84,7 +89,9 @@ class JobGenerator {
         this.containerSasKey = containerSasKey;
         
         scriptTempFolder = workspaceHelper.getPathRelativeToTempFolder("scripts");
-        (new File(scriptTempFolder)).mkdirs();
+        if (!Utils.dirExists(scriptTempFolder)) {
+            Files.createDirectory(Paths.get(scriptTempFolder));
+        }
     }
     
     /**
@@ -100,8 +107,10 @@ class JobGenerator {
      * @throws TimeoutException 
      */
     void createJobWithTasks(int jobTimeoutInMins) throws URISyntaxException, StorageException, InvalidKeyException, IOException, IllegalArgumentException, InterruptedException, BatchErrorException, TimeoutException {
-        List<TaskAddParameter> taskList = createTaskList(
-                TestInParallelPostBuild.class.getResourceAsStream(staticScriptResourceFolder + "TaskPostProcess.cmd"));
+        List<TaskAddParameter> taskList = null;
+        try (InputStream resoureceStream = TestInParallelPostBuild.class.getResourceAsStream(staticScriptResourceFolder + "TaskPostProcess.cmd")) {
+            taskList = createTaskList(resoureceStream);
+        }
                 
         // Create JobPrep task which be running on VM as VM setup task.
         JobPreparationTask jobPreparationTask = createJobPreparationTask();
@@ -140,7 +149,7 @@ class JobGenerator {
         Logger.log(listener, "%d tasks are added to job %s.", taskList.size(), jobId);
     }
     
-    private class TaskAddParameterComp implements Comparator<TaskAddParameter>{ 
+    private static class TaskAddParameterComp implements Comparator<TaskAddParameter>, Serializable { 
         @Override
         public int compare(TaskAddParameter e1, TaskAddParameter e2) {
             if(e1.getConstraints().getMaxWallClockTime().getMinutes() < e2.getConstraints().getMaxWallClockTime().getMinutes()){
@@ -229,13 +238,14 @@ class JobGenerator {
         commandLineList.add(customerVMSetupCommandLine);
 
         // Add VMSetup.cmd script as ResourceEntity
-        String vmSetupCmdFileName = scriptTempFolder + File.separator + "VMSetup.cmd";
-        try (FileWriter vmSetupFileWriter = new FileWriter(new File(vmSetupCmdFileName), false)) {
+        String vmSetupCmdFileName = scriptTempFolder + File.separator + "VMSetup.cmd";        
+        try (Writer vmSetupFileWriter = new OutputStreamWriter(new FileOutputStream(new File(vmSetupCmdFileName), false), java.nio.charset.Charset.defaultCharset())) {
             for (String line : commandLineList) {
                 vmSetupFileWriter.write(line);
                 vmSetupFileWriter.write(System.getProperty("line.separator"));
             }
         }
+        
         LocalResourceEntity resourceVMSetupCmdFile = new LocalResourceEntity(vmSetupCmdFileName);
         sharedResourceEntityList.add(resourceVMSetupCmdFile);
                
@@ -246,7 +256,9 @@ class JobGenerator {
         String sasKey = AzureStorageHelper.getContainerSas(listener, cloudBlobContainer, 3 * 60);
         
         String tempZipFolder = workspaceHelper.getPathRelativeToTempFolder("tempZip");
-        (new File(tempZipFolder)).mkdirs();
+        if (!Utils.dirExists(tempZipFolder)) {
+            Files.createDirectory(Paths.get(tempZipFolder));
+        }
      
         Logger.log(listener, "Uploading %d resources to Azure storage...", sharedResourceEntityList.size());
         for (ResourceEntity resource : sharedResourceEntityList) {
@@ -315,7 +327,7 @@ class JobGenerator {
         }
 
         // Generate the task command line at run time based on the dll
-        try (FileWriter writer = new FileWriter(new File(workPathCmd), false)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(new File(workPathCmd), false), java.nio.charset.Charset.defaultCharset())) {
             for (String line : commandLineList) {
                 writer.write(line);
                 writer.write(System.getProperty("line.separator"));

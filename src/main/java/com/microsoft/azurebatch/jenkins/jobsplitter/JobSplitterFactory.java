@@ -12,9 +12,13 @@ import com.google.gson.Gson;
 import com.microsoft.azurebatch.jenkins.logger.Logger;
 import com.microsoft.azurebatch.jenkins.utils.Utils;
 import hudson.model.BuildListener;
-import java.io.FileReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.InvalidObjectException;
+import java.io.Reader;
+import java.nio.charset.Charset;
 
 /**
  * JobSplitterFactory class
@@ -25,7 +29,7 @@ public class JobSplitterFactory {
      * Generate JobSplitter
      * @param listener BuildListener
      * @param fullFilePath full file path of config file
-     * @return
+     * @return JobSplitter object
      * @throws IOException
      */
     public static JobSplitter generateJobSplitter(BuildListener listener, String fullFilePath)
@@ -37,8 +41,11 @@ public class JobSplitterFactory {
             throw new IOException(String.format("Job splitter config file '%s' doesn't exist, please double check your configuration.", fullFilePath));
         }
         
-        Gson gson = new Gson();        
-        JobSplitter splitter = gson.fromJson(new FileReader(fullFilePath), JobSplitter.class);
+        Gson gson = new Gson();     
+        JobSplitter splitter = null;
+        try (Reader reader = new InputStreamReader(new FileInputStream(new File(fullFilePath)), Charset.defaultCharset())) {
+            splitter = gson.fromJson(reader, JobSplitter.class);
+        }
                 
         // TODO: validate against schema
         // Do some basic check for splitter config, in case customer may provide wrong config file.

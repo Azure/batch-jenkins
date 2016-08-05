@@ -24,8 +24,11 @@ public class Utils {
     
     private static void deleteDirectoryIncludeContent(File f) throws IOException {
         if (f.isDirectory()) {
-            for (File c : f.listFiles()) {
-                deleteDirectoryIncludeContent(c);
+            File[] files = f.listFiles();
+            if (files != null) {
+                for (File c : files) {
+                    deleteDirectoryIncludeContent(c);
+                }
             }
         }
         if (!f.delete()) {
@@ -36,7 +39,7 @@ public class Utils {
     /**
      * Check whether file exists
      * @param path the file path
-     * @return
+     * @return true if file exists
      */
     public static boolean fileExists(String path) {
         File f = new File(path);
@@ -46,7 +49,7 @@ public class Utils {
     /**
      * Check whether if folder exists
      * @param path the folder path
-     * @return
+     * @return true if folder exists
      */
     public static boolean dirExists(String path) {
         File f = new File(path);

@@ -50,6 +50,8 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -85,11 +87,11 @@ public class AzureBatchHelper {
     private final Set<String> retrievedTasks = new HashSet<>();
     
     // Batch auto pool Id prefix
-    private final String autoPoolIdPrefix = "jenkinspool";
+    private static final String autoPoolIdPrefix = "jenkinspool";
     
-    private final String stdoutFileName = "stdout.txt";
+    private static final String stdoutFileName = "stdout.txt";
     
-    private final String stderrFileName = "stderr.txt";
+    private static final String stderrFileName = "stderr.txt";
     
     /**
      * AzureBatchHelper constructor
@@ -130,7 +132,9 @@ public class AzureBatchHelper {
         this.storageAccountInfo = storageAccountInfo;
         
         taskLogDirPath = workspaceHelper.getPathRelativeToTempFolder(jobId + "-output");
-        (new File(taskLogDirPath)).mkdirs();
+        if (!Utils.dirExists(taskLogDirPath)) {
+            Files.createDirectory(Paths.get(taskLogDirPath));
+        }
                 
         client = createBatchClient(batchAccountInfo);
     }
@@ -392,7 +396,7 @@ public class AzureBatchHelper {
             String poolId,
             int jobCompletedTimeoutInMin) throws BatchErrorException, IOException, InterruptedException, TimeoutException {        
         if (!Utils.dirExists(taskLogDirPath)) {
-            (new File(taskLogDirPath)).mkdirs();
+            Files.createDirectory(Paths.get(taskLogDirPath));
         }
         
         // Wait for pool is ready
@@ -603,7 +607,7 @@ public class AzureBatchHelper {
         boolean allJobPrepTasksDone = false;
         
         // wait for all tasks to complete
-        while (elapsedTime < waitTimeoutInMin * 60 * 1000) {
+        while (elapsedTime < (long)waitTimeoutInMin * 60 * 1000) {
             // Check all JobPrep tasks and retrieve logs
             if (!allJobPrepTasksDone) {
                 allJobPrepTasksDone = checkAndRetrieveAllJobPrepTasksOutput(poolId);
@@ -717,7 +721,7 @@ public class AzureBatchHelper {
         int lastTotalVmCount = 0;
         
         // wait for at least one JobPreparationTask to complete
-        while (elapsedTime < waitTimeoutInMin * 60 * 1000) {
+        while (elapsedTime < (long)waitTimeoutInMin * 60 * 1000) {
             List<JobPreparationAndReleaseTaskExecutionInformation> statusList = client.getJobOperations().listPreparationAndReleaseTaskStatus(jobId);
             if (statusList.size() > 0) {
                 for (JobPreparationAndReleaseTaskExecutionInformation info : statusList) {

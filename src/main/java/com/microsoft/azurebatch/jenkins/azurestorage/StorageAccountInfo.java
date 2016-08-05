@@ -106,7 +106,7 @@ public class StorageAccountInfo {
     
     /**
      * Get blob endpoint URL
-     * @return
+     * @return blob endpoint URL
      */
     public String getBlobEndpointURL() {
         return String.format("https://%s.blob.%s", accountName, endpointDomain);

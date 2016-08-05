@@ -14,7 +14,7 @@ import java.io.File;
 public final class WorkspaceHelper {    
 
     private final String workspacePath;
-    private final String azureBatchTempDirName = "azurebatchtemp";
+    private static final String azureBatchTempDirName = "azurebatchtemp";
     private final String azureBatchTempDirPath;
     
     /**
@@ -45,7 +45,7 @@ public final class WorkspaceHelper {
     /**
      * Get path relative to workspace folder
      * @param relativeToWorkspace the path relative to workspace folder
-     * @return
+     * @return path relative to workspace folder
      */
     public String getPathRelativeToWorkspace(String relativeToWorkspace) {
         return workspacePath + File.separator + relativeToWorkspace;
@@ -54,7 +54,7 @@ public final class WorkspaceHelper {
     /**
      * Get path relative to temp folder
      * @param relativeToTempFolder path relative to temp folder
-     * @return
+     * @return path relative to temp folder
      */
     public String getPathRelativeToTempFolder(String relativeToTempFolder) {
         return azureBatchTempDirPath + File.separator + relativeToTempFolder;

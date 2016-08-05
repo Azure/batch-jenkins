@@ -392,41 +392,37 @@ public class TestInParallelPostBuild  extends Recorder {
         public BatchAccountInfo getBatchAccountByFriendlyName(String friendlyName) {
 
             if (friendlyName == null || (friendlyName.trim().length() == 0)) {
-                return null;
+                throw new IllegalArgumentException("Unable to find Batch account with null friendly name %s");
             }
-
-            BatchAccountInfo batchAccountInfo = null;
+            
             BatchAccountInfo[] batchAccounts = getBatchAccounts();
 
             if (batchAccounts != null) {
                 for (BatchAccountInfo ba : batchAccounts) {
                     if (ba.getFriendlyName().equals(friendlyName)) {
-                        batchAccountInfo = ba;
+                        return ba;
                     }
-                    break;
                 }
             }
-            return batchAccountInfo;
+            throw new IllegalArgumentException(String.format("Unable to find Batch account with friendly name %s", friendlyName));
         }
 
         public StorageAccountInfo getStorageAccountByFriendlyName(String friendlyName) {
 
             if (friendlyName == null || (friendlyName.trim().length() == 0)) {
-                return null;
+                throw new IllegalArgumentException("Unable to find Storage account with null friendly name %s");
             }
 
-            StorageAccountInfo storageAccountInfo = null;
             StorageAccountInfo[] storageAccounts = getStorageAccounts();
 
             if (storageAccounts != null) {
                 for (StorageAccountInfo sa : storageAccounts) {
                     if (sa.getFriendlyName().equals(friendlyName)) {
-                        storageAccountInfo = sa;
+                        return sa;
                     }
-                    break;
                 }
             }
-            return storageAccountInfo;
+            throw new IllegalArgumentException(String.format("Unable to find Storage account with friendly name %s", friendlyName));
         }
 
         public StorageAccountInfo getStorageAccountByAccountName(String accountName) {
