@@ -278,17 +278,17 @@ public class TestInParallelPostBuild  extends Recorder {
             
         } catch (BatchErrorException e) {
             Logger.log(listener, "Found BatchErrorException");
-            Logger.log(listener, String.format("BatchError code = %s, message = %s", e.getBody().getCode(), e.getBody().getMessage().getValue()));
-            if (BatchErrorCodeStrings.ActiveJobAndScheduleQuotaReached.equals(e.getBody().getCode())) {
+            Logger.log(listener, String.format("BatchError code = %s, message = %s", e.getBody().code(), e.getBody().message().value()));
+            if (BatchErrorCodeStrings.ActiveJobAndScheduleQuotaReached.equals(e.getBody().code())) {
                 Logger.log(listener, "You've reached your Batch account ActiveJobAndSchedule quota limit (default is 20 if you haven't " + 
                             "requested increase), and you may want to request quota increase if needed. For more information on Batch quotas " +
                             "and how to increase them, see https://azure.microsoft.com/documentation/articles/batch-quota-limit/");
             } else {
                 Logger.log(listener, e);                
             }
-            if (e.getBody().getValues() != null) {
-                for (BatchErrorDetail detail : e.getBody().getValues()) {
-                    Logger.log(listener, String.format("Detail %s=%s", detail.getKey(), detail.getValue()));
+            if (e.getBody().values() != null) {
+                for (BatchErrorDetail detail : e.getBody().values()) {
+                    Logger.log(listener, String.format("Detail %s=%s", detail.key(), detail.value()));
                 }
             }
             takeActionFromException(build, listener, e, Result.FAILURE);

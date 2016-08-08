@@ -92,11 +92,11 @@ public class VmUtilizationProfiler extends Thread {
                 long leavingVmCount = 0;
                 long otherStateVmCount = 0;
 
-                List<ComputeNode> nodes = client.getComputeNodeOperations().listComputeNodes(poolId,
-                        new DetailLevel.Builder().selectClause("id, state").build());
+                List<ComputeNode> nodes = client.computeNodeOperations().listComputeNodes(poolId,
+                        new DetailLevel.Builder().withSelectClause("id, state").build());
                 if (nodes != null) {
                     for (ComputeNode node : nodes) {
-                        switch (node.getState()) {
+                        switch (node.state()) {
                             case CREATING:
                             case STARTING:
                                 startingVmCount++;
@@ -110,12 +110,12 @@ public class VmUtilizationProfiler extends Thread {
                                 break;
                             case IDLE:
                             case RUNNING:
-                                if (ComputeNodeState.RUNNING == node.getState() || runningVMs.contains(node.getId())) {                                    
+                                if (ComputeNodeState.RUNNING == node.state() || runningVMs.contains(node.id())) {                                    
                                     runningVmCount++;
                                     billedVmCount++;
                                     totalRunningVmCountMinutes++;
                                     
-                                    runningVMs.add(node.getId());
+                                    runningVMs.add(node.id());
                                 } else {
                                     preparingVmCount++;
                                     billedVmCount++;
@@ -154,7 +154,7 @@ public class VmUtilizationProfiler extends Thread {
                     bw.write(String.format("%s,%d,%d,%d,%d,%d,%d,%d,%d",
                             dateFormat.format(date), billedVmCount, unbilledVmCount, startingVmCount, rebootingVmCount, preparingVmCount, runningVmCount, leavingVmCount, otherStateVmCount));
                     bw.newLine();
-                } else if (client.getPoolOperations().getPool(poolId).getState() == PoolState.DELETING) {
+                } else if (client.poolOperations().getPool(poolId).state() == PoolState.DELETING) {
                     // No VM in the pool and pool is in deleting state, stop profiling
                     break;
                 }
@@ -162,15 +162,15 @@ public class VmUtilizationProfiler extends Thread {
         } catch (InterruptedException | InterruptedIOException e) {
             Logger.log(listener, "VmUtilizationProfiler is cancelled, stop profiling.");
         } catch (BatchErrorException e) {
-            if (BatchErrorCodeStrings.PoolNotFound.equals(e.getBody().getCode())) {
+            if (BatchErrorCodeStrings.PoolNotFound.equals(e.getBody().code())) {
                 Logger.log(listener, "VmUtilizationProfiler: Pool %s does not exist, stop profiling.", poolId);
             } else {
                 Logger.log(listener, "Found BatchErrorException in VmUtilizationProfiler");
                 Logger.log(listener, e);
-                Logger.log(listener, String.format("BatchError code = %s, message = %s", e.getBody().getCode(), e.getBody().getMessage().getValue()));
-                if (e.getBody().getValues() != null) {
-                    for (BatchErrorDetail detail : e.getBody().getValues()) {
-                        Logger.log(listener, String.format("Detail %s=%s", detail.getKey(), detail.getValue()));
+                Logger.log(listener, String.format("BatchError code = %s, message = %s", e.getBody().code(), e.getBody().message().value()));
+                if (e.getBody().values() != null) {
+                    for (BatchErrorDetail detail : e.getBody().values()) {
+                        Logger.log(listener, String.format("Detail %s=%s", detail.key(), detail.value()));
                     }
                 }
             }

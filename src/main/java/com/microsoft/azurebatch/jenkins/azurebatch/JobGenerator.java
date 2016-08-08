@@ -126,33 +126,33 @@ class JobGenerator {
         Logger.log(listener, "Create job %s with pool: %s", jobId, poolId);
             
         PoolInformation poolInformation = new PoolInformation();
-        poolInformation.setPoolId(poolId);
+        poolInformation.withPoolId(poolId);
         
         JobConstraints jobConstraints = new JobConstraints();
-        jobConstraints.setMaxWallClockTime(Period.minutes(jobCompletedTimeoutInMin));  
+        jobConstraints.withMaxWallClockTime(Period.minutes(jobCompletedTimeoutInMin));  
         Logger.log(listener, "Set job %s constraints with timeout %d minutes.", jobId, jobCompletedTimeoutInMin);    
         
         JobAddParameter param = new JobAddParameter();
-        param.setId(jobId);
-        param.setJobPreparationTask(jobPreparationTask);
-        param.setPoolInfo(poolInformation);
-        param.setConstraints(jobConstraints);  
+        param.withId(jobId)
+                .withJobPreparationTask(jobPreparationTask)
+                .withPoolInfo(poolInformation)
+                .withConstraints(jobConstraints);  
 
-        client.getJobOperations().createJob(param);
+        client.jobOperations().createJob(param);
         
         // We may createTasks with multi-threads if we have many tasks.        
         ArrayList<BatchClientBehavior> listBehaviors = new ArrayList<>();
         listBehaviors.add(new BatchClientParallelOptions(20));
             
         Logger.log(listener, "Job with Id %s is created, now to add tasks...", jobId);        
-        client.getTaskOperations().createTasks(jobId, taskList, listBehaviors);
+        client.taskOperations().createTasks(jobId, taskList, listBehaviors);
         Logger.log(listener, "%d tasks are added to job %s.", taskList.size(), jobId);
     }
     
     private static class TaskAddParameterComp implements Comparator<TaskAddParameter>, Serializable { 
         @Override
         public int compare(TaskAddParameter e1, TaskAddParameter e2) {
-            if(e1.getConstraints().getMaxWallClockTime().getMinutes() < e2.getConstraints().getMaxWallClockTime().getMinutes()){
+            if(e1.constraints().maxWallClockTime().getMinutes() < e2.constraints().maxWallClockTime().getMinutes()){
                 return 1;
             } else {
                 return -1;
@@ -270,21 +270,21 @@ class JobGenerator {
         
         // Create JobPreparationTask        
         JobPreparationTask jobPreparationTask = new JobPreparationTask();  
-        jobPreparationTask.setRunElevated(true);
+        jobPreparationTask.withRunElevated(true);
         
         List<ResourceFile> batchResourceFileList = new ArrayList<>();
         
         for (ResourceEntity resource : sharedResourceEntityList) {
             ResourceFile rfe = new ResourceFile();
-            rfe.setFilePath(resource.getBlobName());
-            rfe.setBlobSource(resource.getBlobPath());
+            rfe.withFilePath(resource.getBlobName())
+                    .withBlobSource(resource.getBlobPath());
             batchResourceFileList.add(rfe);            
         }
         
-        jobPreparationTask.setResourceFiles(batchResourceFileList);
+        jobPreparationTask.withResourceFiles(batchResourceFileList);
         
         // Make sure the command line is path on the VM
-        jobPreparationTask.setCommandLine(resourceVMSetupCmdFile.getResourceName());
+        jobPreparationTask.withCommandLine(resourceVMSetupCmdFile.getResourceName());
 
         return jobPreparationTask;
     }
@@ -294,8 +294,8 @@ class JobGenerator {
         String taskId = taskDefinition.getTaskId();
 
         TaskAddParameter taskAddParam = new TaskAddParameter();
-        taskAddParam.setId(taskId);
-        taskAddParam.setDisplayName(taskDefinition.getName());
+        taskAddParam.withId(taskId)
+                .withDisplayName(taskDefinition.getName());
 
         List<String> commandLineList = new ArrayList<>();
 
@@ -339,12 +339,12 @@ class JobGenerator {
         }
         
         TaskConstraints taskConstraints = new TaskConstraints();
-        taskConstraints.setMaxWallClockTime(Period.minutes(taskDefinition.getTimeoutInMins()));        
+        taskConstraints.withMaxWallClockTime(Period.minutes(taskDefinition.getTimeoutInMins()));        
 
-        taskAddParam.setCommandLine(String.format(
+        taskAddParam.withCommandLine(String.format(
                 "cmd /c copy %s\\scripts\\%s.cmd && cmd /c copy %s\\scripts\\%s && %s.cmd",
                 "%AZ_BATCH_NODE_SHARED_DIR%\\%AZ_BATCH_JOB_ID%", taskId, "%AZ_BATCH_NODE_SHARED_DIR%\\%AZ_BATCH_JOB_ID%", taskPostProcessFileName, taskId));
-        taskAddParam.setConstraints(taskConstraints);
+        taskAddParam.withConstraints(taskConstraints);
 
         return taskAddParam;
     }

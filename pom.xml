@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
         <version>2.3</version>
-        <relativePath/>
+        <relativePath />
     </parent>
     <groupId>com.microsoft.azurebatch</groupId>
     <artifactId>azure-batch-parallel</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <properties>
@@ -52,7 +51,8 @@
      <connection>scm:git:git://github.com/jenkinsci/azure-batch-parallel-plugin.git</connection>
      <developerConnection>scm:git:git@github.com:jenkinsci/azure-batch-parallel-plugin.git</developerConnection>
      <url>http://github.com/jenkinsci/azure-batch-parallel-plugin</url>
-   </scm>
+     <tag>HEAD</tag>
+  </scm>
 
     <repositories>
         <repository>
@@ -60,7 +60,7 @@
             <url>http://repo.jenkins-ci.org/public/</url>
         </repository>
 
-        <repository>
+<!--        <repository>
             <id>adx-snapshots</id>
             <name>Azure ADX Snapshots</name>
             <url>http://adxsnapshots.azurewebsites.net/</url>
@@ -69,6 +69,13 @@
                 <enabled>true</enabled>
                 <updatePolicy>always</updatePolicy>
             </snapshots>
+        </repository>
+        -->
+        <repository>
+            <id>commicrosoftazure-1343</id>
+            <name>1343 staging repo</name>
+            <url>https://oss.sonatype.org/service/local/repositories/commicrosoftazure-1343/content</url>
+            <layout>default</layout>
         </repository>
 
         <repository>
@@ -131,7 +138,7 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-batch</artifactId>
-            <version>1.0.0-20160503.003742-2</version>
+            <version>1.0.0-beta2</version>
         </dependency>
         
         <dependency>

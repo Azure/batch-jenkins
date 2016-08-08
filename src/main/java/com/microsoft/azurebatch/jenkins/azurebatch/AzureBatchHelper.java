@@ -164,10 +164,10 @@ public class AzureBatchHelper {
     public static void validateBatchAccount(String accountName, String accountKey, String serviceURL) 
             throws BatchErrorException, IOException {
         BatchSharedKeyCredentials cred = new BatchSharedKeyCredentials(serviceURL, accountName, accountKey);
-        BatchClient client = BatchClient.Open(cred);
+        BatchClient client = BatchClient.open(cred);
         
         // Check a pool exists to validate Batch account, this pool doesn't need to exist
-        client.getPoolOperations().existsPool("someRandomPoolJustForValidation");        
+        client.poolOperations().existsPool("someRandomPoolJustForValidation");        
     }
     
     /**
@@ -195,7 +195,7 @@ public class AzureBatchHelper {
                 vmConfigs.getMaxTasksPerNode(),
                 poolLifeTimeBeforeTasksAddedInMinutes);
 
-        String poolId = client.getJobOperations().getJob(poolJobId).getExecutionInfo().getPoolId();
+        String poolId = client.jobOperations().getJob(poolJobId).executionInfo().poolId();
 
         if (enableVmUtilizationProfiler) {
             vmUtilizationProfiler = new VmUtilizationProfiler(listener, client, poolId, workspaceHelper.getPathRelativeToTempFolder("vmUtilizaton.csv"));
@@ -229,9 +229,9 @@ public class AzureBatchHelper {
     public void retrieveJobOutputsFromVM() throws IOException, BatchErrorException, InterruptedException, TimeoutException {        
         // Check if job exists
         try {
-            client.getJobOperations().getJob(jobId);
+            client.jobOperations().getJob(jobId);
         } catch (BatchErrorException e) {
-            if (BatchErrorCodeStrings.JobNotFound.equals(e.getBody().getCode())) {
+            if (BatchErrorCodeStrings.JobNotFound.equals(e.getBody().code())) {
                 Logger.log(listener, "Batch job is not created, no results to retrieve.");
                 return;
             }
@@ -290,7 +290,7 @@ public class AzureBatchHelper {
         BatchSharedKeyCredentials cred = new BatchSharedKeyCredentials(batchServiceUrl, batchAccount, batchAccountKey);
         
         Logger.log(listener, "Creating Azure Batch client with account %s batchServiceUrl %s", batchAccount, batchServiceUrl);
-        return BatchClient.Open(cred);
+        return BatchClient.open(cred);
     }
         
     /**
@@ -323,37 +323,37 @@ public class AzureBatchHelper {
 
         Logger.log(listener, "Set CloudServiceConfiguration: OsFamily %s, TargetOSVersion %s", poolSpecOsFamily, poolSpecTargetOSVersion);
         CloudServiceConfiguration cloudServiceConfiguration = new CloudServiceConfiguration();
-        cloudServiceConfiguration.setOsFamily(poolSpecOsFamily);
-        cloudServiceConfiguration.setTargetOSVersion(poolSpecTargetOSVersion);        
+        cloudServiceConfiguration.withOsFamily(poolSpecOsFamily)
+                .withTargetOSVersion(poolSpecTargetOSVersion);        
 
         Logger.log(listener, "Set PoolSpecification: TargetDedicated %d, VmSize %s", poolSpecTargetDedicated, poolSpecVmSize);
         PoolSpecification poolSpecification = new PoolSpecification();
-        poolSpecification.setTargetDedicated(poolSpecTargetDedicated);
-        poolSpecification.setVmSize(poolSpecVmSize);
-        poolSpecification.setMaxTasksPerNode(poolSpecMaxTasksPerNode);
-        poolSpecification.setCloudServiceConfiguration(cloudServiceConfiguration);
+        poolSpecification.withTargetDedicated(poolSpecTargetDedicated)
+                .withVmSize(poolSpecVmSize)
+                .withMaxTasksPerNode(poolSpecMaxTasksPerNode)
+                .withCloudServiceConfiguration(cloudServiceConfiguration);
 
         Logger.log(listener, "Set AutoPoolSpecification: AutoPoolIdPrefix %s, KeepAlive %b", getAutoPoolIdPrefix(), poolSpecAutoPoolKeepAlive);
         AutoPoolSpecification autoPoolSpecification = new AutoPoolSpecification();
-        autoPoolSpecification.setAutoPoolIdPrefix(getAutoPoolIdPrefix());
-        autoPoolSpecification.setKeepAlive(poolSpecAutoPoolKeepAlive);
-        autoPoolSpecification.setPoolLifetimeOption(PoolLifetimeOption.JOB);
-        autoPoolSpecification.setPool(poolSpecification);
+        autoPoolSpecification.withAutoPoolIdPrefix(getAutoPoolIdPrefix())
+                .withKeepAlive(poolSpecAutoPoolKeepAlive)
+                .withPoolLifetimeOption(PoolLifetimeOption.JOB)
+                .withPool(poolSpecification);
 
         PoolInformation poolInformation = new PoolInformation();
-        poolInformation.setAutoPoolSpecification(autoPoolSpecification);
+        poolInformation.withAutoPoolSpecification(autoPoolSpecification);
 
         // Set timeout for the job so it won't run forever even when there's issue with the tests
         JobConstraints jobConstraints = new JobConstraints();
-        jobConstraints.setMaxWallClockTime(Period.minutes(poolTimeoutInMin));  
+        jobConstraints.withMaxWallClockTime(Period.minutes(poolTimeoutInMin));  
         Logger.log(listener, "Set poolJob %s constraints with timeout %d minutes.", poolJobId, poolTimeoutInMin);    
 
         JobAddParameter param = new JobAddParameter();
-        param.setId(poolJobId);
-        param.setPoolInfo(poolInformation);
-        param.setConstraints(jobConstraints);        
+        param.withId(poolJobId)
+                .withPoolInfo(poolInformation)
+                .withConstraints(jobConstraints);        
 
-        client.getJobOperations().createJob(param);
+        client.jobOperations().createJob(param);
         Logger.log(listener, "PoolJob %s is created.", poolJobId);
     }
     
@@ -364,9 +364,9 @@ public class AzureBatchHelper {
      * @throws IOException 
      */
     private void extendPoolJobTimeout(int extraTimeoutInMin) throws BatchErrorException, IOException {
-        CloudJob job = client.getJobOperations().getJob(poolJobId);
+        CloudJob job = client.jobOperations().getJob(poolJobId);
         
-        DateTime jobCreatedTime = job.getCreationTime();
+        DateTime jobCreatedTime = job.creationTime();
         DateTime now = new DateTime(DateTimeZone.UTC);
                 
         // Add some safe buffer timeout to the new job timeout
@@ -374,12 +374,12 @@ public class AzureBatchHelper {
         int newJobTimeoutInMin = (int)((now.getMillis() - jobCreatedTime.getMillis()) / 1000 / 60) + extraTimeoutInMin + safeMoreTimeoutInMin;
         
         JobConstraints jobConstraints = new JobConstraints();
-        jobConstraints.setMaxWallClockTime(Period.minutes(newJobTimeoutInMin));  
+        jobConstraints.withMaxWallClockTime(Period.minutes(newJobTimeoutInMin));  
         
         JobPatchParameter jpp = new JobPatchParameter();
-        jpp.setConstraints(jobConstraints);        
+        jpp.withConstraints(jobConstraints);        
         
-        client.getJobOperations().patchJob(poolJobId, jpp);
+        client.jobOperations().patchJob(poolJobId, jpp);
         Logger.log(listener, "Set poolJob %s new timeout to %d minutes.", poolJobId, newJobTimeoutInMin);
     }
     
@@ -426,13 +426,13 @@ public class AzureBatchHelper {
             throws BatchErrorException, IOException {        
         try {
             // Try to get the job in case the job is not created yet
-            client.getJobOperations().getJob(jobId);
+            client.jobOperations().getJob(jobId);
             
             Logger.log(listener, "Cleanup, will delete job %s.", jobId);
-            client.getJobOperations().deleteJob(jobId);
+            client.jobOperations().deleteJob(jobId);
             Logger.log(listener, "Job %s is deleted.", jobId);
         } catch (BatchErrorException e) {
-            if (BatchErrorCodeStrings.JobNotFound.equals(e.getBody().getCode())) {                
+            if (BatchErrorCodeStrings.JobNotFound.equals(e.getBody().code())) {                
                 return;
             }
             throw e;
@@ -444,10 +444,10 @@ public class AzureBatchHelper {
     }
     
     private void checkAllocatedVMsAndAttemptResize(String poolId) throws BatchErrorException, IOException, InterruptedException, TimeoutException {
-        CloudPool pool = client.getPoolOperations().getPool(poolId);                
-        if (pool.getCurrentDedicated() < pool.getTargetDedicated()) {
-            if (PoolResizeErrorCodes.AccountCoreQuotaReached.equals(pool.getResizeError().getCode())) {
-                if (pool.getCurrentDedicated() == 0) {
+        CloudPool pool = client.poolOperations().getPool(poolId);                
+        if (pool.currentDedicated() < pool.targetDedicated()) {
+            if (PoolResizeErrorCodes.AccountCoreQuotaReached.equals(pool.resizeError().code())) {
+                if (pool.currentDedicated() == 0) {
                     throw new IllegalStateException("Failed to allocate any VM. You've reached your Batch account quota limit (default is 20 cores if you haven't " + 
                             "requested increase), and you may want to request quota increase if needed. For more information on Batch quotas and how to increase them, " +
                             "see https://azure.microsoft.com/documentation/articles/batch-quota-limit/");
@@ -457,7 +457,7 @@ public class AzureBatchHelper {
                             "You've reached your Batch account quota limit (default is 20 cores if you haven't " + 
                             "requested increase), please login to Azure management portal to look up your quota; " + 
                             "and you may want to request quota increase if needed.", 
-                            pool.getCurrentDedicated(), pool.getTargetDedicated());
+                            pool.currentDedicated(), pool.targetDedicated());
                     Logger.log(listener, warning);
                     return;
                 }
@@ -465,19 +465,19 @@ public class AzureBatchHelper {
             
             // If we didn't get expected VMs, try to resize.
             Logger.log(listener, "Allocated VMs are less than target, try to resize...");
-            client.getPoolOperations().resizePool(poolId, pool.getTargetDedicated());
+            client.poolOperations().resizePool(poolId, pool.targetDedicated());
             
             // Wait for pool is ready
             waitForPoolReady(poolId);
             
-            if (pool.getCurrentDedicated() == 0) {
+            if (pool.currentDedicated() == 0) {
                 throw new IllegalStateException(String.format("Failed to allocate any VM (error code: %s, message %s), please double check your Azure Batch account.", 
-                        pool.getResizeError().getCode(), pool.getResizeError().getMessage()));
-            } else if (pool.getCurrentDedicated() < pool.getTargetDedicated()) {
+                        pool.resizeError().code(), pool.resizeError().message()));
+            } else if (pool.currentDedicated() < pool.targetDedicated()) {
                 String warning = String.format("Warning: allocated %d VMs < target %d VMs. " + 
                         "Tests might running slower than expected, and you may cancel the test run at any time. " +
                         "This might be transient issue, and you may try again later. ",
-                        pool.getCurrentDedicated(), pool.getTargetDedicated());
+                        pool.currentDedicated(), pool.targetDedicated());
                 Logger.log(listener, warning);
             }
         }
@@ -493,8 +493,8 @@ public class AzureBatchHelper {
         final long maxPoolSteadyWaitTimeInMinutes = 15;
         Logger.log(listener, String.format("Waiting for pool %s steady...", poolId));
         while (elapsedTime < maxPoolSteadyWaitTimeInMinutes * 60 * 1000) {
-            CloudPool pool = client.getPoolOperations().getPool(poolId);
-            if (pool.getAllocationState() == AllocationState.STEADY) {
+            CloudPool pool = client.poolOperations().getPool(poolId);
+            if (pool.allocationState() == AllocationState.STEADY) {
                 poolSteady = true;
                 break;
             }
@@ -521,10 +521,10 @@ public class AzureBatchHelper {
         Logger.log(listener, String.format("Waiting for pool %s at least one VM ready...", poolId));
         while (elapsedTime < maxVmIdleWaitTimeInMinutes * 60 * 1000) {
 
-            List<ComputeNode> nodeCollection = client.getComputeNodeOperations().listComputeNodes(poolId, 
-                    new DetailLevel.Builder().selectClause("state").filterClause("state eq 'idle' or state eq 'running'").build());
+            List<ComputeNode> nodeCollection = client.computeNodeOperations().listComputeNodes(poolId, 
+                    new DetailLevel.Builder().withSelectClause("state").withFilterClause("state eq 'idle' or state eq 'running'").build());
             for (ComputeNode node : nodeCollection) {
-                ComputeNodeState nodeState = node.getState();
+                ComputeNodeState nodeState = node.state();
                 if (nodeState == ComputeNodeState.IDLE || nodeState == ComputeNodeState.RUNNING) {
                     vmReady = true;
                     break;
@@ -551,18 +551,18 @@ public class AzureBatchHelper {
     }
     
     private void retrieveTaskLogs(CloudTask task) throws InterruptedException, BatchErrorException, IOException, TimeoutException {
-        TaskExecutionInformation execInfo = task.getExecutionInfo();
+        TaskExecutionInformation execInfo = task.executionInfo();
         
-        if (task.getState() == TaskState.ACTIVE || task.getState() == TaskState.PREPARING || execInfo == null) {            
+        if (task.state() == TaskState.ACTIVE || task.state() == TaskState.PREPARING || execInfo == null) {            
             // Task is not started running yet, don't try to retrieve logs.
             return;
-        } else if (task.getState() == TaskState.COMPLETED) {
-            if (execInfo.getSchedulingError() != null) {
-                TaskSchedulingError schedulingError = execInfo.getSchedulingError();
+        } else if (task.state() == TaskState.COMPLETED) {
+            if (execInfo.schedulingError() != null) {
+                TaskSchedulingError schedulingError = execInfo.schedulingError();
                 Logger.log(listener, "Task %s(id: %s) is failed to schedule with SchedulingError Category (%s), Code (%s), Message (%s).", 
-                        task.getDisplayName(), task.getId(), schedulingError.getCategory(), schedulingError.getCode(), schedulingError.getMessage());
+                        task.displayName(), task.id(), schedulingError.category(), schedulingError.code(), schedulingError.message());
                 return;
-            } else if (0 == execInfo.getExitCode()) {            
+            } else if (0 == execInfo.exitCode()) {            
                 // Do not retrieve results for succeeded tasks.
                 return;
             }                
@@ -571,15 +571,15 @@ public class AzureBatchHelper {
         // Task is timeout and killed by Batch service. -1073741510 is the error code returned by VM if task timeout on Windows.
         final int exitCodeKilled = -1073741510;
         
-        if (task.getState() == TaskState.RUNNING) {
-            Logger.log(listener, "Task %s(id: %s) is still running, will retrieve its stdout and stderr files...", task.getDisplayName(), task.getId());
-        } else if (exitCodeKilled == execInfo.getExitCode()) {            
-            Logger.log(listener, "Task %s(id: %s) is killed, will retrieve its stdout and stderr files... It might be due to task timeout, consider to increase the timeout for this task.", task.getDisplayName(), task.getId(), execInfo.getExitCode());
+        if (task.state() == TaskState.RUNNING) {
+            Logger.log(listener, "Task %s(id: %s) is still running, will retrieve its stdout and stderr files...", task.displayName(), task.id());
+        } else if (exitCodeKilled == execInfo.exitCode()) {            
+            Logger.log(listener, "Task %s(id: %s) is killed, will retrieve its stdout and stderr files... It might be due to task timeout, consider to increase the timeout for this task.", task.displayName(), task.id(), execInfo.exitCode());
         } else {
-            Logger.log(listener, "Task %s(id: %s) failed with exit code %d, will retrieve its stdout and stderr files...", task.getDisplayName(), task.getId(), execInfo.getExitCode());
+            Logger.log(listener, "Task %s(id: %s) failed with exit code %d, will retrieve its stdout and stderr files...", task.displayName(), task.id(), execInfo.exitCode());
         }
 
-        String filePrefix = taskLogDirPath + File.separator + task.getId();      
+        String filePrefix = taskLogDirPath + File.separator + task.id();      
 
         getFileFromTaskAndSave(task, stdoutFileName, filePrefix + "_" + stdoutFileName);
 
@@ -593,7 +593,7 @@ public class AzureBatchHelper {
             Logger.log(listener, "End of StdErr output in %s.", localFileName);
         }
 
-        Logger.log(listener, "Retrieved stdout and stderr files for failed task %s(id: %s).", task.getDisplayName(), task.getId());                     
+        Logger.log(listener, "Retrieved stdout and stderr files for failed task %s(id: %s).", task.displayName(), task.id());                     
     }
     
     private void waitForAllTasksCompleted(int waitTimeoutInMin) 
@@ -601,7 +601,7 @@ public class AzureBatchHelper {
         long startTime = System.currentTimeMillis();
         long elapsedTime = 0;
         boolean completed = false;
-        String poolId = client.getJobOperations().getJob(jobId).getExecutionInfo().getPoolId();
+        String poolId = client.jobOperations().getJob(jobId).executionInfo().poolId();
         int lastTotalNodeCount = 0;
         int lastActiveNodeCount = 0;
         boolean allJobPrepTasksDone = false;
@@ -613,8 +613,8 @@ public class AzureBatchHelper {
                 allJobPrepTasksDone = checkAndRetrieveAllJobPrepTasksOutput(poolId);
             }
             
-            List<CloudTask> taskCollection = client.getTaskOperations().listTasks(jobId, 
-                    new DetailLevel.Builder().selectClause("id, state").build());
+            List<CloudTask> taskCollection = client.taskOperations().listTasks(jobId, 
+                    new DetailLevel.Builder().withSelectClause("id, state").build());
             
             // Try to shrink the pool if needed
             tryToShrinkPool(poolId, waitTimeoutInMin, taskCollection);
@@ -625,7 +625,7 @@ public class AzureBatchHelper {
             int completedTasksCount = 0;
             
             for (CloudTask task : taskCollection) {
-                switch (task.getState()) {
+                switch (task.state()) {
                     case ACTIVE:
                         activeTasksCount++;
                         break;
@@ -637,12 +637,12 @@ public class AzureBatchHelper {
                         break;
                     case COMPLETED:
                         completedTasksCount++;
-                        if (!retrievedTasks.contains(task.getId())) {
+                        if (!retrievedTasks.contains(task.id())) {
                             // If task completed, retrieve task log
                             retrieveTaskLogs(task);
                             
                             // Mark task as log retrieved
-                            retrievedTasks.add(task.getId());
+                            retrievedTasks.add(task.id());
                         }   break;
                     default:
                         break;
@@ -655,11 +655,11 @@ public class AzureBatchHelper {
             }
             
             int currentActiveNodeCount = 0;
-            List<ComputeNode> nodes = client.getComputeNodeOperations().listComputeNodes(poolId, 
-                    new DetailLevel.Builder().selectClause("state").build());
+            List<ComputeNode> nodes = client.computeNodeOperations().listComputeNodes(poolId, 
+                    new DetailLevel.Builder().withSelectClause("state").build());
             if (nodes != null) {
                 for (ComputeNode node : nodes) {
-                    if (node.getState() != ComputeNodeState.LEAVINGPOOL) {
+                    if (node.state() != ComputeNodeState.LEAVINGPOOL) {
                         currentActiveNodeCount++;
                     }
                 }
@@ -694,7 +694,7 @@ public class AzureBatchHelper {
         // Try to down scale pool size if we don't have active tasks but have idle VMs.
         boolean toResize = true;
         for (CloudTask task : taskCollection) {
-            if (task.getState() == TaskState.ACTIVE) {
+            if (task.state() == TaskState.ACTIVE) {
                 // If there's still some task in active, we don't need to resize.
                 toResize = false;
                 break;
@@ -702,12 +702,12 @@ public class AzureBatchHelper {
         }
 
         if (toResize) {                
-            CloudPool pool = client.getPoolOperations().getPool(poolId);
+            CloudPool pool = client.poolOperations().getPool(poolId);
 
-            if (pool.getAllocationState() == AllocationState.STEADY) {
+            if (pool.allocationState() == AllocationState.STEADY) {
                 Logger.log(listener, "Shrinking pool since we dont't have active tasks but have idle VMs...");
 
-                client.getPoolOperations().resizePool(poolId, 0, Period.minutes(waitTimeoutInMin), ComputeNodeDeallocationOption.TASKCOMPLETION);
+                client.poolOperations().resizePool(poolId, 0, Period.minutes(waitTimeoutInMin), ComputeNodeDeallocationOption.TASKCOMPLETION);
             }
         }
     }
@@ -722,14 +722,14 @@ public class AzureBatchHelper {
         
         // wait for at least one JobPreparationTask to complete
         while (elapsedTime < (long)waitTimeoutInMin * 60 * 1000) {
-            List<JobPreparationAndReleaseTaskExecutionInformation> statusList = client.getJobOperations().listPreparationAndReleaseTaskStatus(jobId);
+            List<JobPreparationAndReleaseTaskExecutionInformation> statusList = client.jobOperations().listPreparationAndReleaseTaskStatus(jobId);
             if (statusList.size() > 0) {
                 for (JobPreparationAndReleaseTaskExecutionInformation info : statusList) {
-                    JobPreparationTaskExecutionInformation taskInfo = info.getJobPreparationTaskExecutionInfo();
-                    if (taskInfo != null && taskInfo.getState() == JobPreparationTaskState.COMPLETED) {
-                        if (taskInfo.getExitCode() != 0) {
+                    JobPreparationTaskExecutionInformation taskInfo = info.jobPreparationTaskExecutionInfo();
+                    if (taskInfo != null && taskInfo.state() == JobPreparationTaskState.COMPLETED) {
+                        if (taskInfo.exitCode() != 0) {
                             Logger.log(listener, "Warning: JobPreparation task failed (ExitCode %d is non-zero) on VM %s.",
-                                    taskInfo.getExitCode(), info.getNodeId());                      
+                                    taskInfo.exitCode(), info.nodeId());                      
                             Logger.log(listener, "Warning: One or more JobPreparation tasks failed on VM(s), no test tasks " +
                                     "will be scheduled to such VMs. Please check your VM setup script for that VM. " +
                                     "You may find more information from JobPreparation tasks' log files stdout.txt " +
@@ -748,12 +748,12 @@ public class AzureBatchHelper {
             
             int totalVmCount = 0;
             int preparingVmCount = 0;
-            List<ComputeNode> nodes = client.getComputeNodeOperations().listComputeNodes(poolId,
-                    new DetailLevel.Builder().selectClause("state").filterClause("state eq 'idle'").build());
+            List<ComputeNode> nodes = client.computeNodeOperations().listComputeNodes(poolId,
+                    new DetailLevel.Builder().withSelectClause("state").withFilterClause("state eq 'idle'").build());
             if (nodes != null) {
                 totalVmCount = nodes.size();
                 for (ComputeNode node : nodes) {
-                    if (node.getState() == ComputeNodeState.IDLE) {
+                    if (node.state() == ComputeNodeState.IDLE) {
                         preparingVmCount++;
                     }
                 }
@@ -785,24 +785,24 @@ public class AzureBatchHelper {
     private boolean checkAndRetrieveAllJobPrepTasksOutput(String poolId) throws BatchErrorException, IOException {
         int retrievedJobPrepTaskCount = retrieveAllJobPrepTasksOutput();
         
-        CloudPool pool = client.getPoolOperations().getPool(poolId);                
-        return retrievedJobPrepTaskCount >= pool.getCurrentDedicated();
+        CloudPool pool = client.poolOperations().getPool(poolId);                
+        return retrievedJobPrepTaskCount >= pool.currentDedicated();
     }
     
     private int retrieveAllJobPrepTasksOutput() throws BatchErrorException, IOException {
-        List<JobPreparationAndReleaseTaskExecutionInformation> execInfoList = client.getJobOperations().listPreparationAndReleaseTaskStatus(jobId);
+        List<JobPreparationAndReleaseTaskExecutionInformation> execInfoList = client.jobOperations().listPreparationAndReleaseTaskStatus(jobId);
         
         int retrievedJobPrepTaskCount = 0;
         int failedJobPrepTaskCount = 0;
         for (JobPreparationAndReleaseTaskExecutionInformation info : execInfoList) {
-            JobPreparationTaskExecutionInformation taskInfo = info.getJobPreparationTaskExecutionInfo();            
-            if (taskInfo != null && taskInfo.getState() == JobPreparationTaskState.COMPLETED) {
-                String taskKey = info.getPoolId() + info.getNodeId() + "JobPrepTask";
+            JobPreparationTaskExecutionInformation taskInfo = info.jobPreparationTaskExecutionInfo();            
+            if (taskInfo != null && taskInfo.state() == JobPreparationTaskState.COMPLETED) {
+                String taskKey = info.poolId() + info.nodeId() + "JobPrepTask";
                 if (!retrievedTasks.contains(taskKey)) {
-                    if (taskInfo.getExitCode() != 0) {
+                    if (taskInfo.exitCode() != 0) {
                         // We only retrieve JobPrepTask output for failed tasks.
                         failedJobPrepTaskCount++;
-                        retrieveJobPrepTaskOutput(info.getPoolId(), info.getNodeId());
+                        retrieveJobPrepTaskOutput(info.poolId(), info.nodeId());
                     }
                     
                     retrievedTasks.add(taskKey);
@@ -818,9 +818,9 @@ public class AzureBatchHelper {
     }
     
     private void retrieveJobPrepTaskOutput(String poolId, String nodeId) throws BatchErrorException, IOException { 
-        ComputeNode node = client.getComputeNodeOperations().getComputeNode(poolId, nodeId);
+        ComputeNode node = client.computeNodeOperations().getComputeNode(poolId, nodeId);
         
-        final String filePrefix = taskLogDirPath + File.separator + poolId + "_" + node.getId();
+        final String filePrefix = taskLogDirPath + File.separator + poolId + "_" + node.id();
         String taskType = "jobpreparation";
         String taskFolder = String.format("workitems/%s/job-1/%s", jobId, taskType);
 
@@ -843,7 +843,7 @@ public class AzureBatchHelper {
     private void getFileFromComputeNodeAndSave(String poolId, ComputeNode node,
             String fileNameOnNode, String localFileName) throws BatchErrorException, IOException {
         try {
-            InputStream stream = client.getFileOperations().getFileFromComputeNode(poolId, node.getId(), fileNameOnNode);
+            InputStream stream = client.fileOperations().getFileFromComputeNode(poolId, node.id(), fileNameOnNode);
             copyInputStreamToFile(stream,  new File(localFileName));
         } catch(BatchErrorException | IOException e) {
             if (e instanceof InterruptedIOException) {
@@ -851,30 +851,30 @@ public class AzureBatchHelper {
                 throw e;
             }            
             Logger.log(listener, "Failed to get file %s on VM %s (state: %s) in pool %s and save to %s, with error: %s.", 
-                    fileNameOnNode, node.getId(), node.getState(), poolId, localFileName, e.getMessage()); 
+                    fileNameOnNode, node.id(), node.state(), poolId, localFileName, e.getMessage()); 
         }
     }
     
     private void retrieveJobTestTaskResults()throws BatchErrorException, IOException, InterruptedException, TimeoutException {
                 
         Logger.log(listener, "Retrieving test results for job %s...", jobId);
-        List<CloudTask> tasks = client.getTaskOperations().listTasks(jobId);
+        List<CloudTask> tasks = client.taskOperations().listTasks(jobId);
         Logger.log(listener, "Total %d tasks...", tasks.size());
         for (CloudTask task : tasks) {
-            if (retrievedTasks.contains(task.getId())) {
+            if (retrievedTasks.contains(task.id())) {
                 // already retrieved
                 continue;
             }
             
             retrieveTaskLogs(task);
-            retrievedTasks.add(task.getId());
+            retrievedTasks.add(task.id());
         }
         Logger.log(listener, "Retrieved test results for job: " + jobId);
     }
     
     private void getFileFromTaskAndSave(CloudTask task, String fileNameOnNode, String localFileName) throws BatchErrorException, IOException {        
         try {
-            InputStream stream = client.getFileOperations().getFileFromTask(jobId, task.getId(), fileNameOnNode);
+            InputStream stream = client.fileOperations().getFileFromTask(jobId, task.id(), fileNameOnNode);
             copyInputStreamToFile(stream,  new File(localFileName));
         } catch(BatchErrorException | IOException e) {
             if (e instanceof InterruptedIOException) {
@@ -882,7 +882,7 @@ public class AzureBatchHelper {
                 throw e;
             }
             Logger.log(listener, "Failed to get file %s for task %s(id: %s) (state: %s) of job %s and save to %s, with error: %s.", 
-                    fileNameOnNode, task.getDisplayName(), task.getId(), task.getState(), jobId, localFileName, e.getMessage());   
+                    fileNameOnNode, task.displayName(), task.id(), task.state(), jobId, localFileName, e.getMessage());   
         }
     }
     
